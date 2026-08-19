@@ -1,0 +1,730 @@
+<title>LLM Gateway — Complete Guide</title>
+<style>
+  :root {
+    --ground: #fbfbfd;
+    --surface: #ffffff;
+    --surface-2: #f4f5f8;
+    --border: #e4e7ee;
+    --ink: #161a22;
+    --muted: #5b6472;
+    --faint: #858d9c;
+    --accent: #4338ca;
+    --accent-soft: #ecebfb;
+    --allow: #16a34a;
+    --mask: #d97706;
+    --redact: #7c3aed;
+    --block: #dc2626;
+    --code-bg: #f4f5f8;
+    --code-ink: #1f2430;
+    --shadow: 0 1px 2px rgba(20,26,40,.04), 0 8px 24px rgba(20,26,40,.06);
+    --maxw: 78ch;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #0e1016;
+      --surface: #161a22;
+      --surface-2: #1c212b;
+      --border: #2a303c;
+      --ink: #e9ecf2;
+      --muted: #9aa3b2;
+      --faint: #6c7585;
+      --accent: #a5a0f5;
+      --accent-soft: #221f3a;
+      --allow: #4ade80;
+      --mask: #fbbf24;
+      --redact: #c4b5fd;
+      --block: #f87171;
+      --code-bg: #12151d;
+      --code-ink: #d6dbe6;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0e1016; --surface: #161a22; --surface-2: #1c212b; --border: #2a303c;
+    --ink: #e9ecf2; --muted: #9aa3b2; --faint: #6c7585; --accent: #a5a0f5;
+    --accent-soft: #221f3a; --allow: #4ade80; --mask: #fbbf24; --redact: #c4b5fd;
+    --block: #f87171; --code-bg: #12151d; --code-ink: #d6dbe6;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+  }
+  :root[data-theme="light"] {
+    --ground: #fbfbfd; --surface: #ffffff; --surface-2: #f4f5f8; --border: #e4e7ee;
+    --ink: #161a22; --muted: #5b6472; --faint: #858d9c; --accent: #4338ca;
+    --accent-soft: #ecebfb; --allow: #16a34a; --mask: #d97706; --redact: #7c3aed;
+    --block: #dc2626; --code-bg: #f4f5f8; --code-ink: #1f2430;
+    --shadow: 0 1px 2px rgba(20,26,40,.04), 0 8px 24px rgba(20,26,40,.06);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  code, pre, .mono { font-family: ui-monospace, "SF Mono", "Cascadia Code", "Consolas", "Roboto Mono", monospace; }
+
+  .wrap { display: grid; grid-template-columns: 1fr; max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+  @media (min-width: 1040px) {
+    .wrap { grid-template-columns: 260px minmax(0, 1fr); gap: 56px; }
+  }
+
+  /* ---- Table of contents ---- */
+  nav.toc {
+    display: none;
+  }
+  @media (min-width: 1040px) {
+    nav.toc {
+      display: block;
+      position: sticky;
+      top: 0;
+      align-self: start;
+      max-height: 100vh;
+      overflow-y: auto;
+      padding: 40px 0;
+    }
+  }
+  nav.toc .toc-title {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .12em;
+    color: var(--faint); font-weight: 700; margin-bottom: 14px;
+  }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+  nav.toc li { counter-increment: toc; margin: 2px 0; }
+  nav.toc a {
+    display: flex; gap: 10px; align-items: baseline;
+    color: var(--muted); text-decoration: none; font-size: 14.5px;
+    padding: 5px 10px; border-radius: 7px; line-height: 1.35;
+  }
+  nav.toc a::before { content: counter(toc, decimal-leading-zero); color: var(--faint); font-variant-numeric: tabular-nums; font-size: 12px; }
+  nav.toc a:hover { background: var(--surface-2); color: var(--ink); }
+
+  main { padding: 0 0 120px; min-width: 0; }
+
+  /* ---- Hero ---- */
+  header.hero { padding: 64px 0 40px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+  .eyebrow { font-size: 12.5px; text-transform: uppercase; letter-spacing: .16em; color: var(--accent); font-weight: 700; }
+  header.hero h1 {
+    font-size: clamp(2.1rem, 5vw, 3.1rem); line-height: 1.05; margin: 14px 0 16px;
+    letter-spacing: -0.02em; font-weight: 800; text-wrap: balance;
+  }
+  header.hero p.lede { font-size: 1.2rem; color: var(--muted); max-width: 62ch; margin: 0; }
+  .hero-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px; }
+  .hero-meta .pill { font-size: 13px; }
+
+  section { padding: 46px 0; border-bottom: 1px solid var(--border); scroll-margin-top: 24px; }
+  section:last-of-type { border-bottom: none; }
+  section > h2 {
+    font-size: 1.7rem; letter-spacing: -0.01em; font-weight: 800; margin: 0 0 6px;
+    display: flex; align-items: baseline; gap: 14px; text-wrap: balance;
+  }
+  section > h2 .num {
+    font-size: .9rem; color: var(--accent); font-variant-numeric: tabular-nums;
+    font-weight: 700; letter-spacing: 0; flex: none;
+  }
+  section > .sub { color: var(--muted); font-size: 1.05rem; margin: 0 0 26px; max-width: var(--maxw); }
+  h3 { font-size: 1.2rem; font-weight: 700; margin: 34px 0 8px; letter-spacing: -0.01em; }
+  h4 { font-size: 1rem; font-weight: 700; margin: 22px 0 6px; }
+
+  p, li { max-width: var(--maxw); }
+  p { margin: 0 0 14px; }
+  ul, ol { padding-left: 22px; }
+  li { margin: 6px 0; }
+  a { color: var(--accent); }
+  strong { font-weight: 700; }
+
+  code:not(pre code) {
+    background: var(--code-bg); color: var(--code-ink);
+    padding: .12em .4em; border-radius: 5px; font-size: .87em;
+    border: 1px solid var(--border);
+  }
+  pre {
+    background: var(--code-bg); color: var(--code-ink);
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px 20px; overflow-x: auto; font-size: 14px; line-height: 1.55;
+    margin: 16px 0;
+  }
+  pre code { background: none; border: none; padding: 0; }
+  .cm { color: var(--faint); }
+  .k { color: var(--accent); font-weight: 600; }
+  .s { color: var(--allow); }
+
+  /* ---- Diagram band ---- */
+  .diagram {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px; margin: 20px 0; box-shadow: var(--shadow);
+    overflow-x: auto;
+  }
+  .diagram .cap { font-size: 13px; color: var(--faint); text-transform: uppercase; letter-spacing: .1em; font-weight: 700; margin-bottom: 14px; }
+  pre.mermaid { background: none; border: none; padding: 0; text-align: center; }
+
+  /* ---- Pills / chips ---- */
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--muted);
+    line-height: 1.5; white-space: nowrap;
+  }
+  .pill.dot::before { content:""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .pill.allow  { color: var(--allow);  border-color: color-mix(in srgb, var(--allow) 35%, transparent); background: color-mix(in srgb, var(--allow) 10%, transparent); }
+  .pill.mask   { color: var(--mask);   border-color: color-mix(in srgb, var(--mask) 35%, transparent); background: color-mix(in srgb, var(--mask) 10%, transparent); }
+  .pill.redact { color: var(--redact); border-color: color-mix(in srgb, var(--redact) 35%, transparent); background: color-mix(in srgb, var(--redact) 10%, transparent); }
+  .pill.block  { color: var(--block);  border-color: color-mix(in srgb, var(--block) 35%, transparent); background: color-mix(in srgb, var(--block) 10%, transparent); }
+  .pill.accent { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); background: var(--accent-soft); }
+
+  .method {
+    display:inline-block; font-family: ui-monospace, monospace; font-weight: 700;
+    font-size: 12px; padding: 3px 9px; border-radius: 6px; letter-spacing: .03em;
+    color: #fff; vertical-align: middle;
+  }
+  .method.get { background: #0369a1; }
+  .method.post { background: #15803d; }
+  .method.put { background: #b45309; }
+
+  /* ---- Endpoint cards ---- */
+  .endpoint {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px 22px; margin: 16px 0; box-shadow: var(--shadow);
+  }
+  .endpoint .route { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  .endpoint .route .path { font-family: ui-monospace, monospace; font-weight: 700; font-size: 1.02rem; }
+  .endpoint .auth { margin-left: auto; }
+  .endpoint p { margin: 8px 0; max-width: none; }
+
+  /* ---- Tables ---- */
+  .tablewrap { overflow-x: auto; margin: 18px 0; border: 1px solid var(--border); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; min-width: 480px; }
+  th, td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--surface-2); font-weight: 700; font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  tr:last-child td { border-bottom: none; }
+  td code { white-space: nowrap; }
+
+  /* ---- Callouts ---- */
+  .note {
+    border-left: 3px solid var(--accent); background: var(--accent-soft);
+    padding: 14px 18px; border-radius: 0 10px 10px 0; margin: 18px 0;
+  }
+  .note.warn { border-left-color: var(--block); background: color-mix(in srgb, var(--block) 8%, transparent); }
+  .note p { max-width: none; margin: 6px 0; }
+  .note .lbl { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; display:block; margin-bottom: 4px; }
+  .note.warn .lbl { color: var(--block); }
+  .note:not(.warn) .lbl { color: var(--accent); }
+
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps > li {
+    counter-increment: step; position: relative; padding-left: 46px; margin: 18px 0; max-width: var(--maxw);
+  }
+  .steps > li::before {
+    content: counter(step); position: absolute; left: 0; top: -2px;
+    width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); color: var(--accent);
+    font-weight: 700; font-size: 15px; display: grid; place-items: center; font-variant-numeric: tabular-nums;
+  }
+  .steps > li strong { display: block; }
+
+  .kicker { font-size: 13px; color: var(--faint); text-transform: uppercase; letter-spacing: .1em; font-weight: 700; margin: 0 0 4px; }
+
+  footer { padding: 40px 0 0; color: var(--faint); font-size: 14px; }
+  ::selection { background: color-mix(in srgb, var(--accent) 25%, transparent); }
+  a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+</style>
+
+<div class="wrap">
+  <nav class="toc">
+    <div class="toc-title">Contents</div>
+    <ol>
+      <li><a href="#what">What this thing is</a></li>
+      <li><a href="#bigpicture">The big picture</a></li>
+      <li><a href="#words">Words you'll keep seeing</a></li>
+      <li><a href="#lifecycle">Life of one request</a></li>
+      <li><a href="#endpoints">Every endpoint</a></li>
+      <li><a href="#guardrails">Guardrails explained</a></li>
+      <li><a href="#providers">Providers &amp; routing</a></li>
+      <li><a href="#storage">Where everything is stored</a></li>
+      <li><a href="#auth">Keys, auth &amp; rate limits</a></li>
+      <li><a href="#run">Running it yourself</a></li>
+      <li><a href="#config">The .env settings</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Onboarding Guide · Read me first</div>
+      <h1>The LLM Gateway, explained from zero</h1>
+      <p class="lede">A safety checkpoint that sits between your app and the big AI providers. Your code talks to it exactly like it talks to OpenAI — but every message is scanned, cleaned, routed, and recorded on the way through.</p>
+      <div class="hero-meta">
+        <span class="pill accent">FastAPI backend</span>
+        <span class="pill">React + Streamlit admin UIs</span>
+        <span class="pill">OpenAI · Anthropic · Qwen</span>
+        <span class="pill">JSON-file storage</span>
+      </div>
+    </header>
+
+    <!-- 1 -->
+    <section id="what">
+      <h2><span class="num">01</span> What this thing is</h2>
+      <p class="sub">Imagine a security desk in the lobby of a building. Everyone who wants to talk to the AI has to walk past the desk. Nobody gets to skip it. That desk is this gateway.</p>
+
+      <p>Normally an app sends its prompts <em>straight</em> to OpenAI (or Claude, or Qwen). That's fast, but nobody is checking what leaves the building. Someone could paste a customer's credit card number, a password, or a secret API key into a prompt — and it would sail off to a third party with no record and no filter.</p>
+
+      <p>This project puts a <strong>gateway</strong> in the middle. Your app sends its request to the gateway instead of to the AI. The gateway then:</p>
+      <ul>
+        <li><strong>Checks who you are</strong> — every developer has their own key.</li>
+        <li><strong>Cleans the message</strong> — finds sensitive info (emails, cards, secrets…) and hides, masks, or blocks it <em>before</em> it reaches the AI. These filters are called <strong>guardrails</strong>.</li>
+        <li><strong>Sends it to the right AI provider</strong> — and translates the request so OpenAI, Claude, and Qwen all "just work."</li>
+        <li><strong>Cleans the AI's answer too</strong> — the reply is scanned on the way back.</li>
+        <li><strong>Writes down everything</strong> — every request and response is saved to an audit log.</li>
+      </ul>
+
+      <p>The clever part: the gateway speaks <strong>the exact same "language" as OpenAI's API</strong>. So a developer can take their existing OpenAI code, change one line (the address it points at), and everything keeps working — now with guardrails and logging for free.</p>
+
+      <div class="note">
+        <span class="lbl">The three pieces of this repo</span>
+        <p><strong>backend/</strong> — the actual gateway (Python / FastAPI). This is the brain. Everything important happens here.</p>
+        <p><strong>frontend/</strong> — a React admin website for humans: create developers, edit the safety rules, browse the logs.</p>
+        <p><strong>streamlit_ui/</strong> — a simpler, single-file admin console that does the same things plus a "try a live call" tester.</p>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section id="bigpicture">
+      <h2><span class="num">02</span> The big picture</h2>
+      <p class="sub">Two kinds of people use this system, and they come in through two different doors.</p>
+
+      <p><strong>Developers</strong> use their app to call one endpoint (<code>/v1/call_llm</code>) with a personal <em>Bearer key</em>. <strong>Admins</strong> use the web UI to manage the system, protected by a separate <em>admin key</em>. Here's how it all fits together:</p>
+
+      <div class="diagram">
+        <div class="cap">System overview</div>
+        <pre class="mermaid">
+%%{init: {'theme':'neutral', 'flowchart':{'curve':'basis'}}}%%
+flowchart TD
+    DEV["👩‍💻 Developer's app<br/>(OpenAI SDK)"] -- "Bearer key" --> GW
+    ADMIN["🧑‍💼 Admin<br/>(React / Streamlit UI)"] -- "X-Admin-Key" --> GW
+
+    subgraph GW["🛡️  The Gateway  (FastAPI backend)"]
+        direction TB
+        AUTH["Check the key<br/>(who are you?)"] --> RL["Rate limit<br/>(too many calls?)"]
+        RL --> INT["Interceptor<br/>scan &amp; clean the REQUEST"]
+        INT --> ROUTE["Pick a provider"]
+        ROUTE --> PROC["Processor<br/>scan &amp; clean the RESPONSE"]
+        PROC --> LOG["Write audit log"]
+    end
+
+    ROUTE -- "openai" --> OAI["OpenAI"]
+    ROUTE -- "anthropic" --> ANT["Anthropic / Claude"]
+    ROUTE -- "qwen" --> QW["Qwen (DashScope)"]
+
+    LOG --> DB[("db_json/*.json<br/>files on disk")]
+    LOG -. "optional" .-> SINK["External SIEM /<br/>webhook"]
+        </pre>
+      </div>
+
+      <p>Read it top to bottom: a request enters, passes through a series of checkpoints inside the gateway, gets sent to whichever AI provider you chose, comes back, gets cleaned again, and finally gets written down. The dotted line to the "SIEM / webhook" is optional — off by default.</p>
+    </section>
+
+    <!-- 3 -->
+    <section id="words">
+      <h2><span class="num">03</span> Words you'll keep seeing</h2>
+      <p class="sub">Learn these nine words and the rest of the doc reads easily.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Word</th><th>In plain English</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Gateway</strong></td><td>The middle-man server. Your app talks to it instead of talking to the AI directly.</td></tr>
+            <tr><td><strong>Provider / Vendor</strong></td><td>The company that actually runs the AI: <code>openai</code>, <code>anthropic</code>, or <code>qwen</code>.</td></tr>
+            <tr><td><strong>Developer</strong></td><td>A person (with an app) who is allowed to use the gateway. Each one is registered and gets their own key.</td></tr>
+            <tr><td><strong>API key</strong></td><td>A secret password string. Developers get one starting <code>sk-guard-…</code>; admins share one <code>X-Admin-Key</code>.</td></tr>
+            <tr><td><strong>Provider key</strong></td><td>The developer's <em>own</em> OpenAI/Anthropic/Qwen key, sent per call in the <code>X-Provider-Key</code> header. The gateway holds none of its own.</td></tr>
+            <tr><td><strong>Guardrail</strong></td><td>A safety filter that looks for sensitive text and decides what to do with it.</td></tr>
+            <tr><td><strong>PII</strong></td><td>"Personally Identifiable Information" — private data like emails, phone numbers, credit cards, SSNs.</td></tr>
+            <tr><td><strong>Policy</strong></td><td>The rulebook: for each kind of PII, what should the gateway do? One global rulebook for the whole system.</td></tr>
+            <tr><td><strong>Audit log</strong></td><td>The permanent record of every call — who called, what they sent, what came back, how long it took.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>The four things a guardrail can do</h3>
+      <p>Every rule ends in one of these four <strong>actions</strong>. You'll see them everywhere:</p>
+      <p style="display:flex; gap:10px; flex-wrap:wrap; max-width:none;">
+        <span class="pill allow dot">allow — let it through untouched</span>
+        <span class="pill mask dot">mask — hide most of it, e.g. <code style="border:none;background:none">*******1234</code></span>
+        <span class="pill redact dot">redact — replace it with a tag, e.g. <code style="border:none;background:none">[REDACTED_EMAIL]</code></span>
+        <span class="pill block dot">block — stop the whole request cold</span>
+      </p>
+    </section>
+
+    <!-- 4 -->
+    <section id="lifecycle">
+      <h2><span class="num">04</span> Life of one request</h2>
+      <p class="sub">This is the heart of the system: what happens, step by step, when a developer's app calls <code>/v1/call_llm</code>. The code for this lives in <code>backend/src/routers/llm.py</code>.</p>
+
+      <div class="diagram">
+        <div class="cap">Sequence of a single call_llm request</div>
+        <pre class="mermaid">
+%%{init: {'theme':'neutral'}}%%
+sequenceDiagram
+    autonumber
+    participant App as Developer's app
+    participant GW as Gateway
+    participant AI as AI Provider
+    participant Log as Audit log
+
+    App->>GW: POST /v1/call_llm + Bearer key
+    GW->>GW: Verify key (who is this?)
+    GW->>GW: Rate limit — under the per-minute cap?
+    GW->>GW: Interceptor: scan & clean the prompt
+    alt Blocked (e.g. credit card found)
+        GW->>Log: record the blocked attempt
+        GW-->>App: 403 guardrail_blocked
+    else Allowed / cleaned
+        GW->>AI: forward the cleaned request
+        AI-->>GW: AI's answer
+        GW->>GW: Processor: scan & clean the answer
+        GW->>Log: record request + response + findings
+        GW-->>App: 200 OK — OpenAI-shaped reply
+    end
+        </pre>
+      </div>
+
+      <h3>The same story, as a checklist</h3>
+      <ol class="steps">
+        <li><strong>Identify the caller.</strong> The request must carry <code>Authorization: Bearer sk-guard-…</code>. The gateway hashes that key and looks it up in <code>keys.json</code>. No match → <code>401</code>, done.</li>
+        <li><strong>Rate limit.</strong> Has this developer made too many calls this minute? If yes → <code>429</code> with a <code>Retry-After</code> header. (Default: 60/min. See <a href="#auth">section&nbsp;09</a>.)</li>
+        <li><strong>Choose the provider.</strong> The gateway reads the optional <code>provider</code> field in the body. If it's missing, it falls back to the developer's registered vendor. Unknown provider → <code>400</code>.</li>
+        <li><strong>Interceptor (clean the request).</strong> The guardrail engine scans every message. It masks/redacts sensitive spans <em>in place</em>. If any rule says <span class="pill block dot">block</span> (or a denylisted word appears) → <code>403</code>, and the request never reaches the AI. The offending value is still redacted before it's logged, so raw secrets never hit disk.</li>
+        <li><strong>Forward to the AI.</strong> The gateway builds a fresh provider client using the key from the caller's own <code>X-Provider-Key</code> header — it never has one of its own — and calls the real AI, returning an OpenAI-shaped answer. No key for the chosen provider → <code>400 provider_key_missing</code>.</li>
+        <li><strong>Processor (clean the response).</strong> The <em>same</em> engine runs on the AI's reply. If a block rule fires here, the text is swapped for a "withheld by policy" notice instead of being shown.</li>
+        <li><strong>Log everything.</strong> A full record — including which provider served it, the guardrail findings, the status code, and the latency in milliseconds — is appended to <code>audit_logs.json</code> (and optionally pushed to an external sink).</li>
+        <li><strong>Reply.</strong> The developer's app gets back a response in the exact shape OpenAI would have sent.</li>
+      </ol>
+
+      <div class="note">
+        <span class="lbl">Why this matters</span>
+        <p>Because the gateway copies OpenAI's request and response format precisely, a developer can point the official OpenAI SDK at it and change <strong>nothing else</strong> in their code. All the safety and logging is invisible to them.</p>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section id="endpoints">
+      <h2><span class="num">05</span> Every endpoint</h2>
+      <p class="sub">There are six endpoints in total, in three groups. The base address is <code>http://localhost:8000</code> when running locally.</p>
+
+      <h3>The gateway endpoint (for developers)</h3>
+      <p>This is the one developers' apps actually call. It's protected by the developer's personal <strong>Bearer key</strong>.</p>
+
+      <div class="endpoint">
+        <div class="route">
+          <span class="method post">POST</span>
+          <span class="path">/v1/call_llm</span>
+          <span class="pill accent auth">Bearer key</span>
+        </div>
+        <p>Send a chat request; get a chat answer. The body is <strong>identical to OpenAI's <code>chat.completions.create</code></strong> — <code>model</code>, <code>messages</code>, <code>tools</code>, <code>temperature</code>, <code>response_format</code>, and so on. One extra optional field, <code>provider</code>, lets you pick the AI vendor per call; it's stripped out before forwarding. The gateway holds no provider keys of its own, so every call must also carry <strong>your own</strong> key for that provider in an <code>X-Provider-Key</code> header.</p>
+        <p class="kicker" style="margin-top:14px">Example request</p>
+<pre><code><span class="cm"># curl — note the address is the gateway, not OpenAI</span>
+curl http://localhost:8000/v1/call_llm \
+  -H <span class="s">"Authorization: Bearer sk-guard-YOUR_DEV_KEY"</span> \
+  -H <span class="s">"X-Provider-Key: sk-YOUR_OWN_OPENAI_KEY"</span> \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d '{
+    <span class="k">"provider"</span>: <span class="s">"openai"</span>,
+    <span class="k">"model"</span>: <span class="s">"gpt-4o-mini"</span>,
+    <span class="k">"messages"</span>: [{<span class="k">"role"</span>: <span class="s">"user"</span>, <span class="k">"content"</span>: <span class="s">"Say hello in 5 words"</span>}]
+  }'</code></pre>
+        <p class="kicker" style="margin-top:14px">Or with the OpenAI SDK — same code, new address</p>
+<pre><code><span class="k">from</span> openai <span class="k">import</span> OpenAI
+
+client = OpenAI(
+    api_key=<span class="s">"sk-guard-YOUR_DEV_KEY"</span>,       <span class="cm"># the key the gateway gave you</span>
+    base_url=<span class="s">"http://localhost:8000/v1"</span>,   <span class="cm"># point at the gateway</span>
+    default_headers={<span class="s">"X-Provider-Key"</span>: <span class="s">"sk-YOUR_OWN_OPENAI_KEY"</span>},
+)
+resp = client.chat.completions.create(
+    model=<span class="s">"gpt-4o-mini"</span>,
+    messages=[{<span class="k">"role"</span>: <span class="s">"user"</span>, <span class="k">"content"</span>: <span class="s">"Say hello in 5 words"</span>}],
+)</code></pre>
+        <p class="kicker" style="margin-top:14px">Possible responses</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td><span class="pill allow">200</span></td><td>Success — an OpenAI-shaped <code>chat.completion</code> reply.</td></tr>
+              <tr><td><span class="pill block">400</span></td><td>Bad request — unknown provider, missing provider key, or streaming (not supported yet).</td></tr>
+              <tr><td><span class="pill block">401</span></td><td>Missing or wrong Bearer key.</td></tr>
+              <tr><td><span class="pill block">403</span></td><td>Blocked by guardrails — a block rule or denylisted term fired.</td></tr>
+              <tr><td><span class="pill block">429</span></td><td>Rate limit exceeded — wait for the <code>Retry-After</code> seconds.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <h3>Admin endpoints (for managing the system)</h3>
+      <p>These live under <code>/admin</code> and are protected by the <strong>admin key</strong> (<code>X-Admin-Key</code> header). Code: <code>backend/src/routers/admin.py</code>.</p>
+
+      <div class="endpoint">
+        <div class="route"><span class="method post">POST</span><span class="path">/admin/developers</span><span class="pill accent auth">X-Admin-Key</span></div>
+        <p>Register a new developer and mint their key. Send <code>{ name, designation, vendor }</code>. You get back their <code>emp_id</code> and the raw <code>api_key</code> — <strong>shown only this once</strong>. Only a hash is stored, so it can never be retrieved again.</p>
+      </div>
+      <div class="endpoint">
+        <div class="route"><span class="method get">GET</span><span class="path">/admin/developers</span><span class="pill accent auth">X-Admin-Key</span></div>
+        <p>List all registered developers (newest first). Shows a short key <em>prefix</em> only — never the full key.</p>
+      </div>
+      <div class="endpoint">
+        <div class="route"><span class="method get">GET</span><span class="path">/admin/policy</span><span class="pill accent auth">X-Admin-Key</span></div>
+        <p>Read the single global guardrail rulebook — the PII rules, the denylist, and the request/response switches.</p>
+      </div>
+      <div class="endpoint">
+        <div class="route"><span class="method put">PUT</span><span class="path">/admin/policy</span><span class="pill accent auth">X-Admin-Key</span></div>
+        <p>Replace the rulebook. Missing fields are filled from the sensible default, so a partial update is safe.</p>
+      </div>
+
+      <h3>Audit endpoints (for reviewing history)</h3>
+      <p>Under <code>/audit</code>, also protected by the admin key. Code: <code>backend/src/routers/audit.py</code>.</p>
+
+      <div class="endpoint">
+        <div class="route"><span class="method get">GET</span><span class="path">/audit/logs</span><span class="pill accent auth">X-Admin-Key</span></div>
+        <p>List every recorded call, newest first. Optional filters: <code>?emp_id=EMP-0001</code> and/or <code>?vendor=openai</code>.</p>
+      </div>
+      <div class="endpoint">
+        <div class="route"><span class="method get">GET</span><span class="path">/audit/logs/{log_id}</span><span class="pill accent auth">X-Admin-Key</span></div>
+        <p>Fetch one full record by its <code>log_id</code>. Returns <code>404</code> if that id doesn't exist.</p>
+      </div>
+
+      <h3>Plus one free health check</h3>
+      <div class="endpoint">
+        <div class="route"><span class="method get">GET</span><span class="path">/health</span><span class="pill auth">no auth</span></div>
+        <p>Returns <code>{"status": "ok"}</code>. Handy for "is the server up?" checks.</p>
+      </div>
+
+      <div class="note">
+        <span class="lbl">Interactive docs come for free</span>
+        <p>FastAPI auto-generates a live, clickable API explorer at <a href="http://localhost:8000/docs">http://localhost:8000/docs</a> (Swagger UI) once the server is running. Great for poking at endpoints without writing code.</p>
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section id="guardrails">
+      <h2><span class="num">06</span> Guardrails explained</h2>
+      <p class="sub">This is the safety brain. It runs twice per call — once on the way in (the <strong>interceptor</strong>) and once on the way out (the <strong>processor</strong>) — using one shared engine in <code>backend/src/guardrails.py</code>.</p>
+
+      <h3>Step 1 — Detectors find the sensitive stuff</h3>
+      <p>The file <code>backend/src/detectors.py</code> holds regex patterns that scan text for known kinds of private data. Each has a priority so, for example, a credit-card number is never mistaken for a phone number.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Type</th><th>What it catches</th><th>Note</th></tr></thead>
+          <tbody>
+            <tr><td><code>secret</code></td><td>API keys / tokens (<code>sk-…</code>, AWS <code>AKIA…</code>, GitHub <code>ghp_…</code>, Slack <code>xox…</code>)</td><td>Highest priority</td></tr>
+            <tr><td><code>credit_card</code></td><td>13–19 digit card numbers</td><td>Confirmed with the Luhn checksum, so random digits don't false-alarm</td></tr>
+            <tr><td><code>cnic</code></td><td>Pakistani national ID (<code>#####-#######-#</code>)</td><td></td></tr>
+            <tr><td><code>ssn</code></td><td>US Social Security number (<code>###-##-####</code>)</td><td></td></tr>
+            <tr><td><code>ip</code></td><td>IPv4 addresses</td><td></td></tr>
+            <tr><td><code>email</code></td><td>Email addresses</td><td></td></tr>
+            <tr><td><code>phone</code></td><td>Phone numbers</td><td>Lowest priority</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The comment in the code notes this is a "regex baseline" — a heavier engine like Microsoft Presidio could be dropped in behind the same <code>detect()</code> function without changing anything else.</p>
+
+      <h3>Step 2 — The policy decides what to do</h3>
+      <p>For each type it finds, the engine looks up the <strong>action</strong> in the policy (<code>backend/src/policy.py</code>). The starting defaults are:</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Type</th><th>Default action</th></tr></thead>
+          <tbody>
+            <tr><td>email, phone</td><td><span class="pill redact dot">redact</span></td></tr>
+            <tr><td>ip</td><td><span class="pill mask dot">mask</span></td></tr>
+            <tr><td>credit_card, ssn, cnic, secret</td><td><span class="pill block dot">block</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>There's also a <strong>denylist</strong> — a list of forbidden words or regex patterns. If any appears, the whole request is blocked, no matter what else is in it. And two master switches, <code>apply_to_request</code> and <code>apply_to_response</code>, can turn either scanning pass off entirely.</p>
+
+      <div class="diagram">
+        <div class="cap">How the engine decides, per piece of text</div>
+        <pre class="mermaid">
+%%{init: {'theme':'neutral', 'flowchart':{'curve':'basis'}}}%%
+flowchart LR
+    T["A message"] --> DL{"Denylisted<br/>word?"}
+    DL -- yes --> B["🚫 BLOCK<br/>whole request"]
+    DL -- no --> D["Run detectors"]
+    D --> A{"Action for<br/>each finding?"}
+    A -- allow --> KEEP["leave as-is"]
+    A -- mask --> M["****1234"]
+    A -- redact --> R["[REDACTED_TYPE]"]
+    A -- block --> B
+        </pre>
+      </div>
+
+      <div class="note">
+        <span class="lbl">Privacy detail worth knowing</span>
+        <p>The audit log records findings as <strong>type + action + count only</strong> — e.g. "1 email, redacted." It never stores the raw sensitive value. Even when a request is blocked, the detected value is redacted before the payload is written to disk. Secrets never land in the log.</p>
+      </div>
+
+      <p>You don't have to edit JSON by hand — the <strong>Guardrail Policy</strong> page in the React UI (or the Policy tab in Streamlit) lets you flip actions and manage the denylist with dropdowns.</p>
+    </section>
+
+    <!-- 7 -->
+    <section id="providers">
+      <h2><span class="num">07</span> Providers &amp; routing</h2>
+      <p class="sub">The gateway can talk to three different AI companies, and it hides their differences so callers only ever deal with OpenAI's format. Code: <code>backend/src/providers/</code>.</p>
+
+      <p>How the provider is chosen for a given call:</p>
+      <ol>
+        <li>If the request body has a <code>provider</code> field, use that.</li>
+        <li>Otherwise, fall back to the vendor the developer was registered with.</li>
+        <li>If that provider name isn't one of the three known ones → <code>400 provider_not_supported</code>.</li>
+      </ol>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Provider</th><th>How it works</th><th>Key</th></tr></thead>
+          <tbody>
+            <tr><td><code>openai</code></td><td>Straight pass-through — the gateway's format <em>is</em> OpenAI's, so nothing to translate.</td><td>Caller's own, via <code>X-Provider-Key</code></td></tr>
+            <tr><td><code>anthropic</code></td><td>Translates the OpenAI request into Anthropic's Messages API (system prompt, tools, tool choice) and maps the answer back to OpenAI's shape.</td><td>Caller's own, via <code>X-Provider-Key</code></td></tr>
+            <tr><td><code>qwen</code></td><td>Alibaba's Qwen via DashScope, which already speaks OpenAI's format — so it reuses the OpenAI adapter with a different address.</td><td>Caller's own, via <code>X-Provider-Key</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Each provider is a small "adapter" implementing one method: <code>call(body) → openai_shaped_response</code>. They all share the base class in <code>providers/base.py</code>. None of them hold a key of their own — <code>get_provider(name, api_key)</code> builds a fresh adapter per call from whatever the caller sent in <code>X-Provider-Key</code>. Send no key (or the wrong header) and you get a clear <code>400 provider_key_missing</code> — not a mysterious crash.</p>
+
+      <div class="note">
+        <span class="lbl">Registered vendor vs. actual provider</span>
+        <p>The audit log stores both: <code>vendor</code> is the developer's registered default, and <code>provider</code> is who <em>actually</em> served that specific call. They can differ when a caller overrides the provider per request.</p>
+      </div>
+    </section>
+
+    <!-- 8 -->
+    <section id="storage">
+      <h2><span class="num">08</span> Where everything is stored</h2>
+      <p class="sub">There is no database. Everything is plain JSON files in one folder: <code>backend/db_json/</code>. Simple to read, simple to back up, simple to inspect. The read/write helper is <code>backend/src/storage.py</code>.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>File</th><th>What's inside</th></tr></thead>
+          <tbody>
+            <tr><td><code>employees.json</code></td><td>Developer records: <code>emp_id</code>, name, designation, vendor, created date.</td></tr>
+            <tr><td><code>keys.json</code></td><td>One entry per key: which developer, vendor, a <strong>hash</strong> of the key (never the raw key), and a short prefix for display.</td></tr>
+            <tr><td><code>audit_logs.json</code></td><td>The big one — every single call_llm request/response pair with guardrail findings, status, and latency.</td></tr>
+            <tr><td><code>guardrail_policy.json</code></td><td>The one global rulebook. Auto-created with sensible defaults the first time it's needed.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>So — "where are the logs?"</h3>
+      <p>Two places, and the second is optional:</p>
+      <ol class="steps">
+        <li><strong>On disk, always.</strong> Every call is appended to <code>backend/db_json/audit_logs.json</code>. Open that file and you'll see the full history. This is what the <code>/audit/logs</code> endpoint and the UI read from.</li>
+        <li><strong>Forwarded to an external system, if you turn it on.</strong> Set <code>AUDIT_SINK_URL</code> in <code>.env</code> to a webhook or SIEM address and each record is also POSTed there. This happens on a background thread — "fire and forget" with a few retries — so a slow or broken sink <em>never</em> slows down or breaks the actual AI call. Code: <code>backend/src/sink.py</code>. Leave the URL blank to disable it (the default).</li>
+      </ol>
+
+      <p>A single audit record looks roughly like this (shortened):</p>
+<pre><code>{
+  <span class="k">"log_id"</span>: <span class="s">"8bd5afea-…"</span>,
+  <span class="k">"emp_id"</span>: <span class="s">"EMP-0001"</span>,   <span class="k">"name"</span>: <span class="s">"Ali Nawaz"</span>,
+  <span class="k">"vendor"</span>: <span class="s">"openai"</span>,     <span class="k">"provider"</span>: <span class="s">"openai"</span>,
+  <span class="k">"model"</span>: <span class="s">"gpt-4o-mini"</span>, <span class="k">"endpoint"</span>: <span class="s">"/v1/call_llm"</span>,
+  <span class="k">"request_payload"</span>:  { <span class="cm">…already cleaned by the interceptor…</span> },
+  <span class="k">"response_payload"</span>: { <span class="cm">…the AI's reply…</span> },
+  <span class="k">"request_guardrail"</span>:  { <span class="k">"decision"</span>: <span class="s">"allow"</span>, <span class="k">"findings"</span>: [] },
+  <span class="k">"response_guardrail"</span>: { <span class="k">"decision"</span>: <span class="s">"allow"</span>, <span class="k">"findings"</span>: [] },
+  <span class="k">"status_code"</span>: 200,  <span class="k">"latency_ms"</span>: 2023.71,
+  <span class="k">"created_at"</span>: <span class="s">"2026-07-19T17:11:17Z"</span>
+}</code></pre>
+    </section>
+
+    <!-- 9 -->
+    <section id="auth">
+      <h2><span class="num">09</span> Keys, auth &amp; rate limits</h2>
+      <p class="sub">There are two completely separate kinds of access. Don't mix them up. Code: <code>backend/src/security.py</code> and <code>backend/src/ratelimit.py</code>.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th></th><th>Developer access</th><th>Admin access</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Who</strong></td><td>Apps calling the AI</td><td>People running the system</td></tr>
+            <tr><td><strong>Header</strong></td><td><code>Authorization: Bearer sk-guard-…</code></td><td><code>X-Admin-Key: …</code></td></tr>
+            <tr><td><strong>Protects</strong></td><td><code>/v1/call_llm</code></td><td><code>/admin/*</code> and <code>/audit/*</code></td></tr>
+            <tr><td><strong>How many</strong></td><td>One unique key per developer</td><td>One shared key for all admins</td></tr>
+            <tr><td><strong>Stored as</strong></td><td>SHA-256 hash in <code>keys.json</code></td><td>A single value in <code>.env</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note warn">
+        <span class="lbl">Dev-mode gotcha</span>
+        <p>If <code>ADMIN_API_KEY</code> is left blank, the admin and audit routes stay <strong>wide open</strong> — anyone can create developers or read every log. That's fine on your laptop, but the server logs a warning at startup, and you must set the key (and the frontend's matching <code>VITE_ADMIN_KEY</code>) before deploying anywhere other people can reach.</p>
+      </div>
+
+      <h3>Rate limiting</h3>
+      <p>Each developer is capped at <code>RATE_LIMIT_PER_MINUTE</code> calls to <code>/v1/call_llm</code> (default 60), counted with a rolling 60-second window. Go over and you get <code>429</code> plus a <code>Retry-After</code> header telling you how many seconds to wait. Set the value to <code>0</code> to switch limiting off. (It's in-memory, so it counts per running server process.)</p>
+    </section>
+
+    <!-- 10 -->
+    <section id="run">
+      <h2><span class="num">10</span> Running it yourself</h2>
+      <p class="sub">Three parts, three terminals. You really only need the backend to have a working gateway; the two UIs are optional conveniences.</p>
+
+      <h3>1 · The backend (required)</h3>
+<pre><code><span class="k">cd</span> backend
+<span class="cm"># one-time setup</span>
+python -m venv venv
+venv\Scripts\pip install -r requirements.txt
+<span class="cm"># run it</span>
+venv\Scripts\python.exe -m uvicorn src.main:app --reload --port 8000</code></pre>
+      <p>Now the gateway is live at <code>http://localhost:8000</code>. Check <a href="http://localhost:8000/health">/health</a> or open the auto-docs at <a href="http://localhost:8000/docs">/docs</a>.</p>
+
+      <h3>2 · The React admin UI (optional)</h3>
+<pre><code><span class="k">cd</span> frontend
+npm install
+npm run dev        <span class="cm"># opens on http://localhost:5173</span></code></pre>
+      <p>Three pages: <strong>Developers</strong> (register + list), <strong>Guardrail Policy</strong> (edit the rulebook), <strong>Audit Logs</strong> (browse history).</p>
+
+      <h3>3 · The Streamlit console (optional)</h3>
+<pre><code><span class="k">cd</span> streamlit_ui
+pip install -r requirements.txt
+streamlit run app.py</code></pre>
+      <p>Same admin features, plus a <strong>Call LLM</strong> tab where you can paste a Bearer key and fire a real request to test the whole pipeline end to end.</p>
+
+      <h3>Quick sanity test with no UI at all</h3>
+      <p>The <code>backend/tests/</code> folder has three self-contained scripts (<code>test_1_developer_alice.py</code>, <code>…bob…</code>, <code>…carol…</code>). With the server running, each one registers its own developer, makes a real call, and re-reads the audit log to prove the call was recorded. There's also a full offline test suite:</p>
+<pre><code><span class="k">cd</span> backend
+venv\Scripts\python.exe -m pytest -q   <span class="cm"># no network — providers are faked</span></code></pre>
+    </section>
+
+    <!-- 11 -->
+    <section id="config">
+      <h2><span class="num">11</span> The .env settings</h2>
+      <p class="sub">All the knobs live in <code>backend/.env</code>, read by <code>backend/src/config.py</code>. Here's what each one does.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Setting</th><th>What it controls</th><th>Default</th></tr></thead>
+          <tbody>
+            <tr><td><code>QWEN_BASE_URL</code></td><td>Where Qwen's OpenAI-compatible endpoint lives. (Not a secret — the actual Qwen key is never in this file; see below.)</td><td>DashScope intl</td></tr>
+            <tr><td><code>ADMIN_API_KEY</code></td><td>The admin password for <code>/admin</code> &amp; <code>/audit</code>. Blank = open dev mode.</td><td>blank</td></tr>
+            <tr><td><code>RATE_LIMIT_PER_MINUTE</code></td><td>Max calls/min per developer. <code>0</code> disables.</td><td>60</td></tr>
+            <tr><td><code>AUDIT_SINK_URL</code></td><td>Optional external log destination (webhook/SIEM). Blank = off.</td><td>blank</td></tr>
+            <tr><td><code>AUDIT_SINK_ENABLED</code></td><td>Master on/off for the sink even if a URL is set.</td><td>true</td></tr>
+            <tr><td><code>DB_JSON_DIR</code></td><td>Override where the JSON files live (tests use this to isolate).</td><td><code>backend/db_json</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note warn">
+        <span class="lbl">Handle this file with care</span>
+        <p>Your <code>backend/.env</code> holds a <strong>real, live secret</strong> (<code>ADMIN_API_KEY</code>) — never paste its contents into chat, screenshots, tickets, or a shared document, and never commit it to git. Note what's <em>not</em> in there anymore: no OpenAI/Anthropic/Qwen key. This guide deliberately shows only placeholders like <code>sk-guard-YOUR_DEV_KEY</code> and <code>sk-YOUR_OWN_OPENAI_KEY</code> for that reason.</p>
+      </div>
+
+      <h3>You've reached the end</h3>
+      <p>You now know what the gateway is, how a request flows through it, every endpoint, how the guardrails and providers work, where the logs live, and how to run the whole thing. When in doubt, the code is small and readable — start at <code>backend/src/routers/llm.py</code> and follow the imports.</p>
+    </section>
+
+    <footer>
+      <p>Generated from the codebase · backend = FastAPI gateway · frontend = React admin · streamlit_ui = tester console. Tip: use your browser's <strong>Print → Save as PDF</strong> to keep an offline copy of this guide.</p>
+    </footer>
+  </main>
+</div>

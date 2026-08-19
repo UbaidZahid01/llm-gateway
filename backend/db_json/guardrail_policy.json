@@ -1,0 +1,35 @@
+{
+  "pii": {
+    "email": {
+      "enabled": true,
+      "action": "redact"
+    },
+    "phone": {
+      "enabled": true,
+      "action": "redact"
+    },
+    "credit_card": {
+      "enabled": true,
+      "action": "block"
+    },
+    "ssn": {
+      "enabled": true,
+      "action": "block"
+    },
+    "cnic": {
+      "enabled": true,
+      "action": "block"
+    },
+    "ip": {
+      "enabled": true,
+      "action": "mask"
+    },
+    "secret": {
+      "enabled": true,
+      "action": "block"
+    }
+  },
+  "denylist": [],
+  "apply_to_request": false,
+  "apply_to_response": false
+}
